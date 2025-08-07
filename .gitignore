@@ -1,0 +1,25 @@
+# General
+.DS_Store
+*.log
+.env
+.env.*
+!/.env.example
+
+# Database File
+# It's bad practice to commit database files directly.
+# Regenerate it using your seed script instead.
+/backend/database.sqlite
+
+# Node.js Dependencies
+# These should be installed via 'npm install' on any new machine.
+/backend/node_modules/
+/electron/node_modules/
+/frontend/node_modules/
+
+# Frontend Build Output
+/frontend/dist/
+/frontend/.vite/
+
+# Electron Build Output
+/electron/dist/
+/electron/out/
