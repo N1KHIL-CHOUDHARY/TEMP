@@ -1,24 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const accountController = require('../controllers/accountController'); 
+const accountController = require('../controllers/accountController');
+const pawnController = require('../controllers/pawnTicketController');
 
 
-// GET all accounts
 router.get('/', accountController.getAllAccounts);
-
-// GET one account by ID
-router.get('/:id', accountController.getAccountById);
-
-// POST create new account
 router.post('/', accountController.createAccount);
-
-// PUT update account
-router.put('/:id', accountController.updateAccount);
-
-// DELETE account
+router.get('/:id', accountController.getAccountById);
+router.patch('/:id', accountController.updateAccount); 
 router.delete('/:id', accountController.deleteAccount);
 
-// GET search accounts by query
 
+router.get('/:accountId/pawntickets', pawnController.getPawnsByAccount);
 
 module.exports = router;

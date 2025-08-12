@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { getAccounts, createPawnTicket } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function NewPawn() {
   const [customers, setCustomers] = useState([]);
@@ -7,27 +8,37 @@ export default function NewPawn() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pawnData, setPawnData] = useState({
-    item: '',
-    type: '',
-    amount: '',
+    pawn_item_type: '',
+    item_type: 'gold',
+    loan_amount: '',
     weight: '',
     purity: '',
     interest: '',
     adv: '',
+    pawned_date: '',
     photo: null,
   });
+
   const fileInputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCustomers = async () => {
       const data = await getAccounts();
-      const mapped = data.map(acc => ({
-        id: acc.id,
-        name: acc.customer_name || acc.name,
-      }));
-      setCustomers(mapped);
+      if (Array.isArray(data)) setCustomers(data);
     };
     fetchCustomers();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleChange = (e) => {
@@ -46,53 +57,41 @@ export default function NewPawn() {
     }
 
     const payload = {
+      pawned_item: pawnData.pawn_item_type,
+      item_type: pawnData.item_type,
+      loan_amount: pawnData.loan_amount,
+      weight: pawnData.weight,
+      purity: pawnData.purity,
+      interest_rate: pawnData.interest,
+      adv_amount: pawnData.adv,
+      pawned_date: pawnData.pawned_date,
       account_id: selectedCustomer,
-      pawn_item_type: pawnData.item,
-      loan_amount: pawnData.amount,
-      adv: pawnData.adv,
-      interest: pawnData.interest,
-      pawned_date: new Date().toISOString().slice(0, 10),
       status: 'active',
-      settled: 0,
       photo: pawnData.photo ? pawnData.photo.name : '',
     };
 
     const res = await createPawnTicket(payload);
     if (res.success) {
       alert('Pawn ticket created successfully!');
-      setPawnData({
-        item: '',
-        type: '',
-        amount: '',
-        weight: '',
-        purity: '',
-        interest: '',
-        adv: '',
-        photo: null,
-      });
-      setSelectedCustomer('');
-      setCustomerSearch('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      navigate('/pawns');
     } else {
       alert('Failed to create pawn ticket.');
     }
   };
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase())
+    customer.customer_name.toLowerCase().includes(customerSearch.trim().toLowerCase())
   );
 
   const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer.id);
-    setCustomerSearch(customer.name);
+    setSelectedCustomer(customer.account_id);
+    setCustomerSearch(customer.customer_name);
     setIsDropdownOpen(false);
   };
 
   const handleRemovePhoto = () => {
     setPawnData((prev) => ({ ...prev, photo: null }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -101,10 +100,10 @@ export default function NewPawn() {
         <h1 className="text-2xl font-bold">New Pawn Ticket</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Customer Search */}
+          {/* Select Customer */}
           <div>
             <label className="block text-sm mb-1">Select Customer</label>
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <input
                 type="text"
                 className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -122,15 +121,20 @@ export default function NewPawn() {
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map((c) => (
                       <div
-                        key={c.id}
+                        key={c.account_id}
                         className="px-4 py-2 hover:bg-indigo-600 cursor-pointer transition-colors"
                         onClick={() => handleSelectCustomer(c)}
                       >
-                        {c.name}
+                        {c.customer_name}
                       </div>
                     ))
                   ) : (
-                    <div className="px-4 py-2 text-gray-400">No customers found.</div>
+                    <div
+                      className="px-4 py-2 text-gray-400 cursor-pointer"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      No customers found.
+                    </div>
                   )}
                 </div>
               )}
@@ -140,31 +144,37 @@ export default function NewPawn() {
             )}
           </div>
 
-          {/* Item Info */}
+          {/* Item Name */}
           <div>
             <label className="block text-sm mb-1">Item Name</label>
             <input
               type="text"
-              name="item"
-              value={pawnData.item}
+              name="pawn_item_type"
+              value={pawnData.pawn_item_type}
               onChange={handleChange}
-              className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Item Type</label>
-            <input
-              type="text"
-              name="type"
-              value={pawnData.type}
-              onChange={handleChange}
-              className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               required
             />
           </div>
 
-          {/* Numeric Fields */}
+          {/* Item Type */}
+          <div>
+            <label className="block text-sm mb-1">Item Type</label>
+            <select
+              name="item_type"
+              value={pawnData.item_type}
+              onChange={handleChange}
+              className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+              required
+            >
+              <option value="gold" className="bg-black">Gold</option>
+              <option value="silver" className="bg-black">Silver</option>
+              <option value="copper" className="bg-black">Copper</option>
+              <option value="others" className="bg-black">Others</option>
+            </select>
+          </div>
+
+          {/* Weight, Purity, Amount */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm mb-1">Weight (g)</label>
@@ -192,8 +202,8 @@ export default function NewPawn() {
               <label className="block text-sm mb-1">Amount (₹)</label>
               <input
                 type="number"
-                name="amount"
-                value={pawnData.amount}
+                name="loan_amount"
+                value={pawnData.loan_amount}
                 onChange={handleChange}
                 className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
                 required
@@ -201,7 +211,7 @@ export default function NewPawn() {
             </div>
           </div>
 
-          {/* Interest and Advance Fields */}
+          {/* Interest & Advance */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Interest (%)</label>
@@ -225,7 +235,20 @@ export default function NewPawn() {
             </div>
           </div>
 
-          {/* File Upload */}
+          {/* Pawned Date */}
+          <div>
+            <label className="block text-sm mb-1">Pawned Date</label>
+            <input
+              type="date"
+              name="pawned_date"
+              value={pawnData.pawned_date}
+              onChange={handleChange}
+              className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+
+          {/* Photo Upload */}
           <div>
             <label className="block text-sm mb-1">Pawn Item Photo (Optional)</label>
             {pawnData.photo ? (
@@ -240,9 +263,7 @@ export default function NewPawn() {
                   onClick={handleRemovePhoto}
                   className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-1"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ✕
                 </button>
               </div>
             ) : (
@@ -257,7 +278,6 @@ export default function NewPawn() {
             )}
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             className="w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded-md font-medium transition-colors"

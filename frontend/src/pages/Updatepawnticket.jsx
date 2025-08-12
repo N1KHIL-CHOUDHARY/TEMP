@@ -1,75 +1,83 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-const mockCustomers = [
-  { id: '1', name: 'Amit Singh' },
-  { id: '2', name: 'Priya Mehta' },
-  { id: '3', name: 'Rahul Jain' },
-  { id: '4', name: 'Sonal Sharma' },
-  { id: '5', name: 'Kumar Patel' },
-  { id: '6', name: 'Anjali Desai' },
-  { id: '7', name: 'Vikram Choudhury' },
-  { id: '8', name: 'Neha Gupta' },
-  { id: '9', name: 'Ravi Verma' },
-  { id: '10', name: 'Deepika Rao' },
-];
+import {getPawnTicketById, updatePawnTicket } from '../services/api';
 
 export default function UpdatePawn() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [customers, setCustomers] = useState([]);
+  
   const [customerSearch, setCustomerSearch] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pawnData, setPawnData] = useState({
-    item: '',
-    type: '',
-    amount: '',
+    pawned_item: '',
+    item_type: '',
     weight: '',
+    loan_amount: '',
     purity: '',
+    adv_amount: '',
+    interest_rate: '',
+    pawned_date: '',
+    
     photo: null,
   });
   const [initialData, setInitialData] = useState({});
   const fileInputRef = useRef(null);
+  const dropdownRef = useRef(null);
   const [photoPreview, setPhotoPreview] = useState(null);
 
+  // Close dropdown on outside click
   useEffect(() => {
-    // In a real application, you would fetch data from an API using the 'id'
-    const fetchPawnData = async () => {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockPawnData = {
-        item: 'Gold Necklace',
-        type: 'Jewellery',
-        amount: 50000,
-        weight: 25.5,
-        purity: 91.6,
-        // In a real app, this would be a URL to the existing photo
-        photo: 'https://via.placeholder.com/200/FFD700/000000?text=Pawn+Item',
-        customerId: '2', // Mock customer ID
-      };
-      
-      const customer = mockCustomers.find(c => c.id === mockPawnData.customerId);
-      if (customer) {
-        setSelectedCustomer(customer.id);
-        setCustomerSearch(customer.name);
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
       }
-      
-      // Separate the photo URL from the rest of the data for comparison
-      const { photo: photoUrl, ...restData } = mockPawnData;
-      setPawnData({ ...restData, photo: photoUrl });
-      setInitialData({ ...restData, photo: photoUrl });
-      setPhotoPreview(photoUrl);
-    };
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    fetchPawnData();
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      const customersData = await getAccountById(id);
+      const mappedCustomers = customersData.map(acc => ({
+        id: acc.id,
+        name: acc.customer_name || acc.name,
+      }));
+      setCustomers(mappedCustomers);
+
+      const pawnTicketData = await getPawnTicketById(id);
+      if (pawnTicketData) {
+        const ticket = {
+          pawned_item: pawnTicketData.pawned_item || '',
+          item_type: pawnTicketData.item_type || '',
+          weight: pawnTicketData.weight || '',
+          loan_amount: pawnTicketData.loan_amount || '',
+          purity: pawnTicketData.purity || '',
+          adv_amount: pawnTicketData.adv_amount || '',
+          interest_rate: pawnTicketData.interest_rate || '',
+          pawned_date: pawnTicketData.pawned_date || '',
+          photo: pawnTicketData.photo || null,
+        };
+        setPawnData(ticket);
+        setInitialData(ticket);
+        setPhotoPreview(pawnTicketData.photo);
+
+        const customer = mappedCustomers.find(c => c.id === pawnTicketData.account_id);
+        if (customer) {
+          setSelectedCustomer(customer.id);
+          setCustomerSearch(customer.name);
+        }
+      }
+    };
+    fetchInitialData();
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (files) {
-      setPawnData(prev => ({ ...prev, [name]: files[0] }));
+    if (files && files[0]) {
+      setPawnData(prev => ({ ...prev, photo: files[0] }));
       setPhotoPreview(URL.createObjectURL(files[0]));
     } else {
       setPawnData(prev => ({ ...prev, [name]: value }));
@@ -84,7 +92,7 @@ export default function UpdatePawn() {
     }
   };
 
-  const filteredCustomers = mockCustomers.filter((customer) =>
+  const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
@@ -93,37 +101,46 @@ export default function UpdatePawn() {
     setCustomerSearch(customer.name);
     setIsDropdownOpen(false);
   };
-  
+
   const isFormModified = () => {
-    const isCustomerModified = selectedCustomer !== initialData.customerId;
-    const isItemModified = (
-      pawnData.item !== initialData.item ||
-      pawnData.type !== initialData.type ||
-      pawnData.amount !== initialData.amount ||
-      pawnData.weight !== initialData.weight ||
-      pawnData.purity !== initialData.purity ||
-      pawnData.photo !== initialData.photo
-    );
-    return isCustomerModified || isItemModified;
+    return JSON.stringify(initialData) !== JSON.stringify(pawnData) ||
+           selectedCustomer !== initialData.account_id;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isFormModified()) {
       alert('No changes to save.');
       return;
     }
-    
+
     if (!selectedCustomer) {
       alert('Please select a customer');
       return;
     }
-    
-    // In a real app, you'd send this data to your API
-    console.log(`Updating pawn ticket with ID: ${id}`, { customer: selectedCustomer, ...pawnData });
-    alert('Pawn ticket updated successfully!');
-    navigate('/pawns'); // Redirect to a different page after successful update
+
+    const payload = {
+      account_id: selectedCustomer,
+      pawned_item: pawnData.pawned_item,
+      item_type: pawnData.item_type,
+      weight: pawnData.weight,
+      loan_amount: pawnData.loan_amount,
+      purity: pawnData.purity,
+      adv_amount: pawnData.adv_amount,
+      interest_rate: pawnData.interest_rate,
+      pawned_date: pawnData.pawned_date,
+      photo: pawnData.photo ? pawnData.photo.name : '',
+    };
+
+    const res = await updatePawnTicket(id, payload);
+
+    if (res.success) {
+      alert('Pawn ticket updated successfully!');
+      navigate('/pawns');
+    } else {
+      alert('Failed to update pawn ticket.');
+    }
   };
 
   return (
@@ -132,7 +149,9 @@ export default function UpdatePawn() {
         <h1 className="text-2xl font-bold">Update Pawn Ticket</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+
+          {/* Customer */}
+          <div ref={dropdownRef}>
             <label className="block text-sm mb-1">Select Customer</label>
             <div className="relative">
               <input
@@ -169,64 +188,109 @@ export default function UpdatePawn() {
               <p className="mt-2 text-sm text-green-400">Selected: {customerSearch}</p>
             )}
           </div>
-          
+
+          {/* Pawned Item */}
           <div>
-            <label className="block text-sm mb-1">Item Name</label>
+            <label className="block text-sm mb-1">Pawned Item</label>
             <input
               type="text"
-              name="item"
-              value={pawnData.item}
+              name="pawned_item"
+              value={pawnData.pawned_item}
               onChange={handleChange}
-              className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               required
             />
           </div>
-          <div>
-            <label className="block text-sm mb-1">Item Type</label>
-            <input
-              type="text"
-              name="type"
-              value={pawnData.type}
-              onChange={handleChange}
-              className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          {/* Item Type & Weight */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1">Weight (g)</label>
+              <label className="block text-sm mb-1">Item Type</label>
+              <input
+                type="text"
+                name="item_type"
+                value={pawnData.item_type}
+                onChange={handleChange}
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Weight (grams)</label>
               <input
                 type="number"
                 name="weight"
                 value={pawnData.weight}
                 onChange={handleChange}
-                className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Purity (%)</label>
-              <input
-                type="number"
-                name="purity"
-                value={pawnData.purity}
-                onChange={handleChange}
-                className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Amount (₹)</label>
-              <input
-                type="number"
-                name="amount"
-                value={pawnData.amount}
-                onChange={handleChange}
-                className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               />
             </div>
           </div>
+
+          {/* Loan, Purity, Advance, Interest */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm mb-1">Loan Amount (₹)</label>
+              <input
+                type="number"
+                name="loan_amount"
+                value={pawnData.loan_amount}
+                onChange={handleChange}
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Purity</label>
+              <input
+                type="text"
+                name="purity"
+                value={pawnData.purity}
+                onChange={handleChange}
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm mb-1">Advance (₹)</label>
+              <input
+                type="number"
+                name="adv_amount"
+                value={pawnData.adv_amount}
+                onChange={handleChange}
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Interest Rate (%)</label>
+              <input
+                type="number"
+                name="interest_rate"
+                value={pawnData.interest_rate}
+                onChange={handleChange}
+                className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          {/* Pawned Date */}
+          <div>
+            <label className="block text-sm mb-1">Pawned Date</label>
+            <input
+              type="date"
+              name="pawned_date"
+              value={pawnData.pawned_date}
+              onChange={handleChange}
+              className="w-full bg-white/10  text-white px-4 py-2 rounded-md border border-white/20"
+              required
+            />
+          </div>
+
+          {/* Status */}
+         
+
+          {/* Photo */}
           <div>
             <label className="block text-sm mb-1">Pawn Item Photo (Optional)</label>
             {photoPreview ? (
@@ -241,9 +305,7 @@ export default function UpdatePawn() {
                   onClick={handleRemovePhoto}
                   className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-1"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ✕
                 </button>
               </div>
             ) : (
@@ -257,7 +319,8 @@ export default function UpdatePawn() {
               />
             )}
           </div>
-          
+
+          {/* Buttons */}
           <div className="flex space-x-4">
             <button
               type="submit"
@@ -274,6 +337,7 @@ export default function UpdatePawn() {
               Cancel
             </button>
           </div>
+
         </form>
       </div>
     </div>

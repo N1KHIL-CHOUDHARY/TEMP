@@ -9,8 +9,6 @@ const navLinks = [
   { label: 'Pawn Tickets', path: '/pawns', icon: <FaCoins /> },
   { label: 'New Account', path: '/Accounts/add', icon: <FaUserPlus /> },
   { label: 'New Pawn Ticket', path: '/pawnticket/add', icon: <FaPlusCircle /> },
-  { label: 'Update Account', path: '/Accounts/update', icon: <FaEdit /> },
-  { label: 'Update Ticket', path: '/pawnticket/update', icon: <FaEdit /> }
 ]
 
 export default function Sidebar() {

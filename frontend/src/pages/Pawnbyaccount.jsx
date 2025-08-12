@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getAccountById, getPawnTicketById } from '../services/api'; // Adjust path as needed
+import { getAccountById, getPawnTicketsByAccountId } from '../services/api';
 
 export default function Pawnbyaccount() {
     const { id } = useParams();
@@ -8,21 +8,28 @@ export default function Pawnbyaccount() {
     const [pawns, setPawns] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const statusClasses = (status) =>
-        status ? 'bg-green-600 text-green-50' : 'bg-red-600 text-red-50';
+    const statusClasses = (status) => {
+        const normalized = (status || "").toLowerCase();
+        return normalized === 'active'
+            ? 'bg-green-600 text-green-50'
+            : 'bg-red-600 text-red-50';
+    };
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const accountData = await getAccountById(id);
-                const pawnData = await getPawnTicketById(id);
+                const accountRes = await getAccountById(id);
+                const pawnRes = await getPawnTicketsByAccountId(id);
 
-                setAccount(accountData);
-                setPawns(pawnData);
-                console.log(pawnData);
+                console.log(pawnRes);
+
+                setAccount(accountRes?.data || accountRes || null);
+                setPawns(pawnRes?.data || pawnRes || []);
             } catch (error) {
                 console.error("Failed to fetch data:", error);
+                setAccount(null);
+                setPawns([]);
             } finally {
                 setLoading(false);
             }
@@ -42,33 +49,36 @@ export default function Pawnbyaccount() {
         return (
             <div className="min-h-screen bg-black text-white p-6 text-center">
                 <h1 className="text-3xl font-bold">Account not found.</h1>
-                <Link to="/" className="text-blue-400 hover:underline mt-4 block">Go back to dashboard</Link>
+                <Link to="/accounts" className="text-blue-400 hover:underline mt-4 block">
+                    Go back to accounts
+                </Link>
             </div>
         );
     }
-    
+
     return (
         <div className="min-h-screen bg-black text-white p-6 md:p-8">
-            {/* Account Details */}
+            {/* Account Info Card */}
             <div className="bg-white/5 rounded-2xl p-6 md:p-8 shadow-xl border border-white/10 mb-8">
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                     <div className="flex-shrink-0">
                         <img
-                            src={account.photo || '/default-avatar.png'} // fallback image
+                            src={account.photo?.trim() ? account.photo : '/default-avatar.png'}
                             alt="Customer"
                             className="w-28 h-28 rounded-full object-cover border-2 border-white/20"
                         />
                     </div>
                     <div className="flex-grow text-center md:text-left">
-                        <h1 className="text-3xl font-extrabold">{account.customer_name}</h1>
-                        <p className="text-white/70 mt-1">PAN: {account.pan}</p>
-                        <p className="text-white/70">Phone: {account.phone_no}</p>
-                        <p className="text-white/70">Address: {account.address}</p>
+                        <h1 className="text-3xl font-extrabold">{account.customer_name || "N/A"}</h1>
+                        <p className="text-white/70 mt-1">PAN: {account.pan_number || "N/A"}</p>
+                        <p className="text-white/70 mt-1">Aadhaar: {account.aadhaar_number || "N/A"}</p>
+                        <p className="text-white/70">Phone: {account.phone_number || "N/A"}</p>
+                        <p className="text-white/70">Address: {account.address || "N/A"}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Pawn Tickets */}
+            {/* Pawn Tickets Table */}
             <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl">
                 <h2 className="text-2xl font-bold p-6 border-b border-white/10">Pawn Tickets</h2>
                 {pawns.length > 0 ? (
@@ -87,20 +97,32 @@ export default function Pawnbyaccount() {
                             </thead>
                             <tbody>
                                 {pawns.map((pawn) => (
-                                    <tr key={pawn.id} className="border-b border-white/10 last:border-b-0 hover:bg-white/10 transition-colors duration-150">
-                                        <td className="px-6 py-4">{pawn.id}</td>
-                                        <td className="px-6 py-4 font-medium text-white">{pawn.pawn_item_type}</td>
-                                        <td className="px-6 py-4 hidden sm:table-cell font-bold text-white/80">₹{pawn.loan_amount}</td>
-                                        <td className="px-6 py-4 hidden md:table-cell text-white/80">₹{pawn.adv}</td>
-                                        <td className="px-6 py-4 hidden md:table-cell text-white/80">{pawn.interest}%</td>
+                                    <tr
+                                        key={pawn.pawn_ticket_id || pawn.id}
+                                        className="border-b border-white/10 last:border-b-0 hover:bg-white/10 transition-colors duration-150"
+                                    >
+                                        <td className="px-6 py-4">{pawn.pawn_ticket_id || "N/A"}</td>
+                                        <td className="px-6 py-4 font-medium text-white">{pawn.item_type || "N/A"}</td>
+                                        <td className="px-6 py-4 hidden sm:table-cell font-bold text-white/80">
+                                            ₹{pawn.loan_amount ? pawn.loan_amount.toLocaleString() : "0"}
+                                        </td>
+                                        <td className="px-6 py-4 hidden md:table-cell text-white/80">
+                                            ₹{pawn.adv_amount ?? "0"}
+                                        </td>
+                                        <td className="px-6 py-4 hidden md:table-cell text-white/80">
+                                            {pawn.interest_rate ?? 0}%
+                                        </td>
                                         <td className="px-6 py-4 text-center hidden sm:table-cell">
-                                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusClasses(pawn.status === 'active')}`}>
-                                                {pawn.status === 'active' ? 'Active' : 'Closed'}
+                                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusClasses(pawn.status)}`}>
+                                                {pawn.status || "N/A"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Link to={`/pawns/${pawn.id}`} className="text-blue-400 hover:text-blue-300 font-medium">
-                                                View
+                                            <Link
+                                                to={`/pawnticket/update/${pawn.pawn_ticket_id}`}
+                                                className="text-blue-400 hover:text-blue-300 font-medium"
+                                            >
+                                                Edit
                                             </Link>
                                         </td>
                                     </tr>

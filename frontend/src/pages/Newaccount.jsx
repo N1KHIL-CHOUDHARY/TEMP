@@ -3,13 +3,14 @@ import { createAccount } from '../services/api';
 
 export default function NewAccount() {
   const [accountData, setAccountData] = useState({
-    name: '',
-    phone: '',
+    customer_name: '',
+    phone_number: '',
     address: '',
-    panNo: '',
-    aadhaar: '',
-    customerPhoto: null,
-    introducerPhoto: null,
+    pan_number: '',
+    aadhaar_number: '',
+    gender: '',
+    customer_photo: null,
+    introducer_photo: null,
   });
 
   const customerPhotoInputRef = useRef(null);
@@ -25,36 +26,59 @@ export default function NewAccount() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { name, phone, address, panNo, aadhaar } = accountData;
-    if (!name || !phone || !address || !panNo || !aadhaar) {
+    const {
+      customer_name,
+      phone_number,
+      address,
+      pan_number,
+      aadhaar_number,
+      gender,
+    } = accountData;
+
+    if (
+      !customer_name ||
+      !phone_number ||
+      !address ||
+      !pan_number ||
+      !aadhaar_number ||
+      !gender
+    ) {
       alert('Please fill in all required fields.');
       return;
     }
 
-    // Map frontend fields to backend fields
     const payload = {
-      customer_name: name,
-      phone_no: phone,
+      customer_name,
+      phone_number,
       address,
-      pan: panNo,
-      aadhaar: aadhaar,
-      photo: accountData.customerPhoto ? accountData.customerPhoto.name : '',
+      pan_number,
+      aadhaar_number,
+      gender,
+      customer_photo: accountData.customer_photo
+        ? accountData.customer_photo.name
+        : '',
+      introducer_photo: accountData.introducer_photo
+        ? accountData.introducer_photo.name
+        : '',
     };
 
     const res = await createAccount(payload);
     if (res.success) {
       alert('Account created successfully!');
       setAccountData({
-        name: '',
-        phone: '',
+        customer_name: '',
+        phone_number: '',
         address: '',
-        panNo: '',
-        aadhaar: '',
-        customerPhoto: null,
-        introducerPhoto: null,
+        pan_number: '',
+        aadhaar_number: '',
+        gender: '',
+        customer_photo: null,
+        introducer_photo: null,
       });
-      if (customerPhotoInputRef.current) customerPhotoInputRef.current.value = '';
-      if (introducerPhotoInputRef.current) introducerPhotoInputRef.current.value = '';
+      if (customerPhotoInputRef.current)
+        customerPhotoInputRef.current.value = '';
+      if (introducerPhotoInputRef.current)
+        introducerPhotoInputRef.current.value = '';
     } else {
       alert('Failed to create account.');
     }
@@ -62,10 +86,10 @@ export default function NewAccount() {
 
   const handleRemovePhoto = (photoType) => {
     setAccountData((prev) => ({ ...prev, [photoType]: null }));
-    if (photoType === 'customerPhoto' && customerPhotoInputRef.current) {
+    if (photoType === 'customer_photo' && customerPhotoInputRef.current) {
       customerPhotoInputRef.current.value = '';
     }
-    if (photoType === 'introducerPhoto' && introducerPhotoInputRef.current) {
+    if (photoType === 'introducer_photo' && introducerPhotoInputRef.current) {
       introducerPhotoInputRef.current.value = '';
     }
   };
@@ -84,8 +108,8 @@ export default function NewAccount() {
                 <label className="block text-sm mb-1">Full Name</label>
                 <input
                   type="text"
-                  name="name"
-                  value={accountData.name}
+                  name="customer_name"
+                  value={accountData.customer_name}
                   onChange={handleChange}
                   className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
                   required
@@ -95,8 +119,8 @@ export default function NewAccount() {
                 <label className="block text-sm mb-1">Phone Number</label>
                 <input
                   type="tel"
-                  name="phone"
-                  value={accountData.phone}
+                  name="phone_number"
+                  value={accountData.phone_number}
                   onChange={handleChange}
                   className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
                   required
@@ -117,8 +141,8 @@ export default function NewAccount() {
                 <label className="block text-sm mb-1">PAN Number</label>
                 <input
                   type="text"
-                  name="panNo"
-                  value={accountData.panNo}
+                  name="pan_number"
+                  value={accountData.pan_number}
                   onChange={handleChange}
                   className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
                   required
@@ -128,12 +152,31 @@ export default function NewAccount() {
                 <label className="block text-sm mb-1">Aadhaar Number</label>
                 <input
                   type="text"
-                  name="aadhaar"
-                  value={accountData.aadhaar}
+                  name="aadhaar_number"
+                  value={accountData.aadhaar_number}
                   onChange={handleChange}
                   className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Gender</label>
+                <div className="flex gap-6">
+                  {['Male', 'Female', 'Other'].map((option) => (
+                    <label key={option} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={option}
+                        checked={accountData.gender === option}
+                        onChange={handleChange}
+                        className="accent-indigo-500"
+                        required
+                      />
+                      <span className="text-white">{option}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -144,16 +187,16 @@ export default function NewAccount() {
               {/* Customer Photo */}
               <div>
                 <label className="block text-sm mb-1">Customer Photo (Optional)</label>
-                {accountData.customerPhoto ? (
+                {accountData.customer_photo ? (
                   <div className="relative w-full rounded-md overflow-hidden mb-2">
                     <img
-                      src={URL.createObjectURL(accountData.customerPhoto)}
+                      src={URL.createObjectURL(accountData.customer_photo)}
                       alt="Customer preview"
                       className="w-full h-auto max-h-64 object-contain"
                     />
                     <button
                       type="button"
-                      onClick={() => handleRemovePhoto('customerPhoto')}
+                      onClick={() => handleRemovePhoto('customer_photo')}
                       className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-1"
                     >
                       ✕
@@ -162,7 +205,7 @@ export default function NewAccount() {
                 ) : (
                   <input
                     type="file"
-                    name="customerPhoto"
+                    name="customer_photo"
                     ref={customerPhotoInputRef}
                     accept="image/*"
                     onChange={handleChange}
@@ -174,16 +217,16 @@ export default function NewAccount() {
               {/* Introducer Photo */}
               <div>
                 <label className="block text-sm mb-1">Introducer Photo (Optional)</label>
-                {accountData.introducerPhoto ? (
+                {accountData.introducer_photo ? (
                   <div className="relative w-full rounded-md overflow-hidden mb-2">
                     <img
-                      src={URL.createObjectURL(accountData.introducerPhoto)}
+                      src={URL.createObjectURL(accountData.introducer_photo)}
                       alt="Introducer preview"
                       className="w-full h-auto max-h-64 object-contain"
                     />
                     <button
                       type="button"
-                      onClick={() => handleRemovePhoto('introducerPhoto')}
+                      onClick={() => handleRemovePhoto('introducer_photo')}
                       className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-1"
                     >
                       ✕
@@ -192,7 +235,7 @@ export default function NewAccount() {
                 ) : (
                   <input
                     type="file"
-                    name="introducerPhoto"
+                    name="introducer_photo"
                     ref={introducerPhotoInputRef}
                     accept="image/*"
                     onChange={handleChange}
@@ -216,4 +259,3 @@ export default function NewAccount() {
     </div>
   );
 }
-    
