@@ -6,10 +6,6 @@ export default function UpdatePawn() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [customers, setCustomers] = useState([]);
-  
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pawnData, setPawnData] = useState({
     pawned_item: '',
     item_type: '',
@@ -19,34 +15,15 @@ export default function UpdatePawn() {
     adv_amount: '',
     interest_rate: '',
     pawned_date: '',
-    
     photo: null,
+    account_id: ''
   });
   const [initialData, setInitialData] = useState({});
   const fileInputRef = useRef(null);
-  const dropdownRef = useRef(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const customersData = await getAccountById(id);
-      const mappedCustomers = customersData.map(acc => ({
-        id: acc.id,
-        name: acc.customer_name || acc.name,
-      }));
-      setCustomers(mappedCustomers);
-
       const pawnTicketData = await getPawnTicketById(id);
       if (pawnTicketData) {
         const ticket = {
@@ -59,16 +36,11 @@ export default function UpdatePawn() {
           interest_rate: pawnTicketData.interest_rate || '',
           pawned_date: pawnTicketData.pawned_date || '',
           photo: pawnTicketData.photo || null,
+          account_id: pawnTicketData.account_id || ''
         };
         setPawnData(ticket);
         setInitialData(ticket);
         setPhotoPreview(pawnTicketData.photo);
-
-        const customer = mappedCustomers.find(c => c.id === pawnTicketData.account_id);
-        if (customer) {
-          setSelectedCustomer(customer.id);
-          setCustomerSearch(customer.name);
-        }
       }
     };
     fetchInitialData();
@@ -92,19 +64,8 @@ export default function UpdatePawn() {
     }
   };
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase())
-  );
-
-  const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer.id);
-    setCustomerSearch(customer.name);
-    setIsDropdownOpen(false);
-  };
-
   const isFormModified = () => {
-    return JSON.stringify(initialData) !== JSON.stringify(pawnData) ||
-           selectedCustomer !== initialData.account_id;
+    return JSON.stringify(initialData) !== JSON.stringify(pawnData);
   };
 
   const handleSubmit = async (e) => {
@@ -115,13 +76,8 @@ export default function UpdatePawn() {
       return;
     }
 
-    if (!selectedCustomer) {
-      alert('Please select a customer');
-      return;
-    }
-
     const payload = {
-      account_id: selectedCustomer,
+      account_id: pawnData.account_id,
       pawned_item: pawnData.pawned_item,
       item_type: pawnData.item_type,
       weight: pawnData.weight,
@@ -150,46 +106,6 @@ export default function UpdatePawn() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Customer */}
-          <div ref={dropdownRef}>
-            <label className="block text-sm mb-1">Select Customer</label>
-            <div className="relative">
-              <input
-                type="text"
-                className="w-full bg-white/10 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                value={customerSearch}
-                onChange={(e) => {
-                  setCustomerSearch(e.target.value);
-                  setIsDropdownOpen(true);
-                  setSelectedCustomer('');
-                }}
-                onFocus={() => setIsDropdownOpen(true)}
-                placeholder="Search for a customer..."
-              />
-              {isDropdownOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-black rounded-md shadow-lg border border-gray-900 max-h-48 overflow-y-auto ">
-                  {filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((c) => (
-                      <div
-                        key={c.id}
-                        className="px-4 py-2 hover:bg-indigo-600 cursor-pointer transition-colors"
-                        onClick={() => handleSelectCustomer(c)}
-                      >
-                        {c.name}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-gray-400">No customers found.</div>
-                  )}
-                </div>
-              )}
-            </div>
-            {selectedCustomer && (
-              <p className="mt-2 text-sm text-green-400">Selected: {customerSearch}</p>
-            )}
-          </div>
-
-          {/* Pawned Item */}
           <div>
             <label className="block text-sm mb-1">Pawned Item</label>
             <input
@@ -202,7 +118,6 @@ export default function UpdatePawn() {
             />
           </div>
 
-          {/* Item Type & Weight */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Item Type</label>
@@ -226,7 +141,6 @@ export default function UpdatePawn() {
             </div>
           </div>
 
-          {/* Loan, Purity, Advance, Interest */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Loan Amount (₹)</label>
@@ -274,7 +188,6 @@ export default function UpdatePawn() {
             </div>
           </div>
 
-          {/* Pawned Date */}
           <div>
             <label className="block text-sm mb-1">Pawned Date</label>
             <input
@@ -287,10 +200,6 @@ export default function UpdatePawn() {
             />
           </div>
 
-          {/* Status */}
-         
-
-          {/* Photo */}
           <div>
             <label className="block text-sm mb-1">Pawn Item Photo (Optional)</label>
             {photoPreview ? (
@@ -320,7 +229,6 @@ export default function UpdatePawn() {
             )}
           </div>
 
-          {/* Buttons */}
           <div className="flex space-x-4">
             <button
               type="submit"
@@ -337,7 +245,6 @@ export default function UpdatePawn() {
               Cancel
             </button>
           </div>
-
         </form>
       </div>
     </div>

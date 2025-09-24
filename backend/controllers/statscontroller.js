@@ -1,5 +1,5 @@
-const dbaccount = require('../models/accounts').db;
-const dbpawnticket = require('../models/pawntickets').db;
+const dbaccount = require('../models/accounts');
+const dbpawnticket = require('../models/pawntickets');
 
 exports.getAccountsCount = (req, res) => {
     dbaccount.get('SELECT COUNT(customer_name) AS total_accounts FROM accounts', (err, row) => {

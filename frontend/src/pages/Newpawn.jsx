@@ -8,13 +8,13 @@ export default function NewPawn() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pawnData, setPawnData] = useState({
-    pawn_item_type: '',
+    pawned_item: '',
     item_type: 'gold',
     loan_amount: '',
     weight: '',
     purity: '',
-    interest: '',
-    adv: '',
+    interest_rate: '',
+    adv_amount: '',
     pawned_date: '',
     photo: null,
   });
@@ -57,17 +57,17 @@ export default function NewPawn() {
     }
 
     const payload = {
-      pawned_item: pawnData.pawn_item_type,
+      pawned_item: pawnData.pawned_item || null,
       item_type: pawnData.item_type,
-      loan_amount: pawnData.loan_amount,
-      weight: pawnData.weight,
-      purity: pawnData.purity,
-      interest_rate: pawnData.interest,
-      adv_amount: pawnData.adv,
+      loan_amount: parseFloat(pawnData.loan_amount) || 0,
+      weight: parseFloat(pawnData.weight) || 0,
+      purity: parseFloat(pawnData.purity) || 0,
+      interest_rate: parseFloat(pawnData.interest_rate) || 0,
+      adv_amount: parseFloat(pawnData.adv_amount) || 0,
       pawned_date: pawnData.pawned_date,
       account_id: selectedCustomer,
       status: 'active',
-      photo: pawnData.photo ? pawnData.photo.name : '',
+      photo: pawnData.photo ? pawnData.photo.name : null,
     };
 
     const res = await createPawnTicket(payload);
@@ -100,7 +100,6 @@ export default function NewPawn() {
         <h1 className="text-2xl font-bold">New Pawn Ticket</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Select Customer */}
           <div>
             <label className="block text-sm mb-1">Select Customer</label>
             <div className="relative" ref={dropdownRef}>
@@ -144,20 +143,18 @@ export default function NewPawn() {
             )}
           </div>
 
-          {/* Item Name */}
           <div>
             <label className="block text-sm mb-1">Item Name</label>
             <input
               type="text"
-              name="pawn_item_type"
-              value={pawnData.pawn_item_type}
+              name="pawned_item"
+              value={pawnData.pawned_item}
               onChange={handleChange}
               className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               required
             />
           </div>
 
-          {/* Item Type */}
           <div>
             <label className="block text-sm mb-1">Item Type</label>
             <select
@@ -174,7 +171,6 @@ export default function NewPawn() {
             </select>
           </div>
 
-          {/* Weight, Purity, Amount */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm mb-1">Weight (g)</label>
@@ -211,14 +207,13 @@ export default function NewPawn() {
             </div>
           </div>
 
-          {/* Interest & Advance */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Interest (%)</label>
               <input
                 type="number"
-                name="interest"
-                value={pawnData.interest}
+                name="interest_rate"
+                value={pawnData.interest_rate}
                 onChange={handleChange}
                 className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               />
@@ -227,15 +222,14 @@ export default function NewPawn() {
               <label className="block text-sm mb-1">Advance (₹)</label>
               <input
                 type="number"
-                name="adv"
-                value={pawnData.adv}
+                name="adv_amount"
+                value={pawnData.adv_amount}
                 onChange={handleChange}
                 className="w-full bg-white/10 text-white px-4 py-2 rounded-md"
               />
             </div>
           </div>
 
-          {/* Pawned Date */}
           <div>
             <label className="block text-sm mb-1">Pawned Date</label>
             <input
@@ -248,7 +242,6 @@ export default function NewPawn() {
             />
           </div>
 
-          {/* Photo Upload */}
           <div>
             <label className="block text-sm mb-1">Pawn Item Photo (Optional)</label>
             {pawnData.photo ? (

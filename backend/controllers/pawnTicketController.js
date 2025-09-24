@@ -1,6 +1,5 @@
 const db = require('../models/pawntickets'); 
 
-// GET all pawns
 exports.getAllPawns = (req, res) => {
   db.all('SELECT * FROM pawntickets ORDER BY pawn_ticket_id DESC', [], (err, rows) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
@@ -8,7 +7,6 @@ exports.getAllPawns = (req, res) => {
   });
 };
 
-// GET pawn by ID
 exports.getPawnById = (req, res) => {
   const { id } = req.params;
   db.get('SELECT * FROM pawntickets WHERE pawn_ticket_id = ?', [id], (err, row) => {
@@ -18,7 +16,6 @@ exports.getPawnById = (req, res) => {
   });
 };
 
-// CREATE pawn ticket
 exports.createPawn = (req, res) => {
   const {
     account_id,
@@ -31,10 +28,7 @@ exports.createPawn = (req, res) => {
     interest_rate,
     pawned_date,
     status
-
   } = req.body;
-
-  console.log(req.body);
 
   if (!account_id || !loan_amount || !pawned_date) {
     return res.status(400).json({ success: false, message: 'account_id, loan_amount, and pawned_date are required' });
@@ -43,19 +37,19 @@ exports.createPawn = (req, res) => {
   db.run(
     `INSERT INTO pawntickets (
       account_id, pawned_item, item_type, weight, loan_amount, purity, adv_amount,
-      interest_rate, pawned_date,status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
+      interest_rate, pawned_date, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       account_id,
       pawned_item || null,
       item_type || null,
       weight || null,
-      loan_amount,
+      parseFloat(loan_amount) || 0,
       purity || null,
       adv_amount || null,
       interest_rate || null,
       pawned_date,
-      status || null
+      status || 'active'
     ],
     function (err) {
       if (err) return res.status(500).json({ success: false, error: err.message });
@@ -64,7 +58,6 @@ exports.createPawn = (req, res) => {
   );
 };
 
-// UPDATE pawn ticket (full update like PUT)
 exports.updatePawn = (req, res) => {
   const { id } = req.params;
   const {
@@ -97,7 +90,7 @@ exports.updatePawn = (req, res) => {
       pawned_item || null,
       item_type || null,
       weight || null,
-      loan_amount || null,
+      parseFloat(loan_amount) || null,
       purity || null,
       adv_amount || null,
       interest_rate || null,
@@ -113,7 +106,6 @@ exports.updatePawn = (req, res) => {
   );
 };
 
-// DELETE pawn ticket
 exports.deletePawn = (req, res) => {
   const { id } = req.params;
   db.run('DELETE FROM pawntickets WHERE pawn_ticket_id = ?', [id], function (err) {
@@ -122,7 +114,6 @@ exports.deletePawn = (req, res) => {
   });
 };
 
-// PATCH status + settled_date
 exports.updatePawnStatusAndSettled = (req, res) => {
   const { id } = req.params;
   const { status, settled_date } = req.body;
@@ -141,7 +132,6 @@ exports.updatePawnStatusAndSettled = (req, res) => {
   );
 };
 
-// GET by status
 exports.getPawnsByStatus = (req, res) => {
   const { status } = req.params;
   db.all(
@@ -154,7 +144,6 @@ exports.getPawnsByStatus = (req, res) => {
   );
 };
 
-// GET pawns by account_id
 exports.getPawnsByAccount = (req, res) => {
   const { accountId } = req.params;
   db.all(
